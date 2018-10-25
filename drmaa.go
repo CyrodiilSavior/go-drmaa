@@ -70,6 +70,7 @@ import (
  #include <stdio.h>
  #include <stdlib.h>
  #include <stddef.h>
+ #include <unistd.h>
 #if __APPLE__
  #include <unistd.h>
 #endif
@@ -491,6 +492,8 @@ type Session struct {
 	initialized bool
 }
 
+
+
 // MakeSession creates and initializes a new DRMAA session.
 func MakeSession() (Session, error) {
 	var session Session
@@ -507,6 +510,7 @@ func (s *Session) Init(contactString string) error {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 	var errNumber C.int
+
 
 	if contactString == "" {
 		errNumber = C.drmaa_init(nil, diag, stringSize)
@@ -637,6 +641,11 @@ func (s *Session) DeleteJobTemplate(jt *JobTemplate) error {
 	return nil
 }
 
+func SetUID(id int){
+	uidToPass := C.__uid_t(id)
+        C.setuid(uidToPass)
+}
+
 // RunJob submits a job in a (initialized) session to the cluster scheduler.
 func (s *Session) RunJob(jt *JobTemplate) (string, error) {
 	jobID := C.makeString(jobnameSize)
@@ -646,6 +655,8 @@ func (s *Session) RunJob(jt *JobTemplate) (string, error) {
 	defer C.free(unsafe.Pointer(diag))
 
 	errNumber := C.drmaa_run_job(jobID, jobnameSize, jt.jt, diag, stringSize)
+
+
 
 	if errNumber != C.DRMAA_ERRNO_SUCCESS && diag != nil {
 		ce := makeError(C.GoString(diag), errorID[errNumber])
